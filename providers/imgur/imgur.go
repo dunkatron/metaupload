@@ -28,6 +28,7 @@ type provider struct {
 
 var genericError = fmt.Errorf("Failed to upload image to Imgur.")
 
+// Parse the returned response from Imgur and look for the image link to return.
 func parseResponse(res *http.Response) (*string, error) {
 	ret, err := ioutil.ReadAll(res.Body)
 
@@ -43,6 +44,8 @@ func parseResponse(res *http.Response) (*string, error) {
 		return nil, genericError
 	}
 
+	// Figure out what was successfully pulled out of the response JSON and use it to
+	// fill out the return values
 	if responseObject.Success != nil && *responseObject.Success && responseObject.Data.Link != nil {
 		return responseObject.Data.Link, nil
 	} else if responseObject.Data != nil && responseObject.Data.Error != nil {
@@ -53,9 +56,12 @@ func parseResponse(res *http.Response) (*string, error) {
 }
 
 func (p provider) SideLoadImage(imageUrl string) (*string, error) {
+	// Imgur API needs us to send the image URL in the "image" field of the post data
+
 	values := url.Values{"image": {imageUrl}}
 	body := strings.NewReader(values.Encode())
 	req, err := http.NewRequest("POST", imgurUrl, body)
+
 	req.Header.Add("Authorization", "Client-ID "+p.clientId)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
@@ -74,8 +80,11 @@ func (p provider) SideLoadImage(imageUrl string) (*string, error) {
 }
 
 func (p provider) UploadImage(filename string, imageData []byte) (*string, error) {
+
+	// Here we stick our image into multipart form data and upload it to Imgur
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
+	defer writer.Close()
 
 	part, err := writer.CreateFormFile("image", filename)
 
@@ -89,12 +98,8 @@ func (p provider) UploadImage(filename string, imageData []byte) (*string, error
 		return nil, genericError
 	}
 
-	err = writer.Close()
-	if err != nil {
-		return nil, genericError
-	}
-
 	req, err := http.NewRequest("POST", imgurUrl, body)
+
 	req.Header.Add("Authorization", "Client-ID "+p.clientId)
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 

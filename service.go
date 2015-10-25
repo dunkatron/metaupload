@@ -30,7 +30,7 @@ func renderResult(data interface{}, err error, r render.Render) {
 
 var genericError = fmt.Errorf("Failed to upload image.")
 
-func registerProviderFactory(m *martini.ClassicMartini, provider providers.Provider) {
+func registerProvider(m *martini.ClassicMartini, provider providers.Provider) {
 
 	// Sideload an image from a remote URL
 	type imageSideload struct {
@@ -56,6 +56,7 @@ func registerProviderFactory(m *martini.ClassicMartini, provider providers.Provi
 		}
 		defer file.Close()
 
+		// Need to read image file bytes into a slice to pass into the provider
 		contents, err := ioutil.ReadAll(file)
 		if err != nil {
 			renderResult(nil, genericError, r)
@@ -85,9 +86,9 @@ func main() {
 	// Go through providers, build directory, and register each one
 	// at its appropriate path.
 	var providerNames = make([]string, len(providerList))
-	for i, providerFactory := range providerList {
-		providerNames[i] = providerFactory.Name()
-		registerProviderFactory(m, providerFactory)
+	for i, provider := range providerList {
+		providerNames[i] = provider.Name()
+		registerProvider(m, provider)
 	}
 
 	// Listing of providers
