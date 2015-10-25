@@ -84,7 +84,6 @@ func (p provider) UploadImage(filename string, imageData []byte) (*string, error
 	// Here we stick our image into multipart form data and upload it to Imgur
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	defer writer.Close()
 
 	part, err := writer.CreateFormFile("image", filename)
 
@@ -94,6 +93,11 @@ func (p provider) UploadImage(filename string, imageData []byte) (*string, error
 
 	_, err = part.Write(imageData)
 
+	if err != nil {
+		return nil, genericError
+	}
+
+	err = writer.Close()
 	if err != nil {
 		return nil, genericError
 	}
